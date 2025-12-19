@@ -1,12 +1,14 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
+import { useState } from "react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useParams } from "next/navigation"
 import { useTenant } from "@/providers/tenant-provider"
 import { createTenantApi } from "@/lib/api"
+import { useAuth } from "@/hooks/use-auth"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Clock, User, MessageCircle } from "lucide-react"
+import { ArrowLeft, Clock, User, MessageCircle, Reply, ChevronDown, ChevronUp } from "lucide-react"
 import Link from "next/link"
 
 interface Post {
@@ -18,24 +20,95 @@ interface Post {
   author_name?: string
   category_id?: string
   category_name?: string
+  video_url?: string
   created_at: string
   updated_at: string
+}
+
+interface Comment {
+  id: string
+  post_id: string
+  author_id: string
+  author_name?: string
+  author_avatar?: string
+  content: string
+  parent_id?: string
+  reply_count: number
+  created_at: string
 }
 
 export default function PostDetailPage() {
   const params = useParams()
   const postId = params.id as string
   const { tenant } = useTenant()
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
 
-  const { data: post, isLoading } = useQuery({
+  const [newComment, setNewComment] = useState("")
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [replyContent, setReplyContent] = useState("")
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set())
+
+  const api = tenant ? createTenantApi(tenant.slug) : null
+
+  // Fetch post
+  const { data: post, isLoading: postLoading } = useQuery({
     queryKey: ["post", tenant?.slug, postId],
     queryFn: async () => {
-      if (!tenant) return null
-      const api = createTenantApi(tenant.slug)
+      if (!api) return null
       return api.posts.get(postId)
     },
     enabled: !!tenant && !!postId,
   })
+
+  // Fetch comments
+  const { data: comments, isLoading: commentsLoading } = useQuery({
+    queryKey: ["comments", tenant?.slug, postId],
+    queryFn: async () => {
+      if (!api) return []
+      return api.comments.listByPost(postId)
+    },
+    enabled: !!tenant && !!postId,
+  })
+
+  // Create comment mutation
+  const createCommentMutation = useMutation({
+    mutationFn: async (data: { content: string; parent_id?: string }) => {
+      if (!api) throw new Error("API not initialized")
+      return api.comments.create({
+        post_id: postId,
+        content: data.content,
+        parent_id: data.parent_id,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["comments", tenant?.slug, postId] })
+      setNewComment("")
+      setReplyContent("")
+      setReplyingTo(null)
+    },
+  })
+
+  const handleSubmitComment = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newComment.trim()) return
+    createCommentMutation.mutate({ content: newComment })
+  }
+
+  const handleSubmitReply = (parentId: string) => {
+    if (!replyContent.trim()) return
+    createCommentMutation.mutate({ content: replyContent, parent_id: parentId })
+  }
+
+  const toggleReplies = (commentId: string) => {
+    const newExpanded = new Set(expandedReplies)
+    if (newExpanded.has(commentId)) {
+      newExpanded.delete(commentId)
+    } else {
+      newExpanded.add(commentId)
+    }
+    setExpandedReplies(newExpanded)
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -48,7 +121,22 @@ export default function PostDetailPage() {
     })
   }
 
-  if (isLoading) {
+  const formatRelativeDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+
+    if (minutes < 1) return "agora"
+    if (minutes < 60) return `${minutes}min`
+    if (hours < 24) return `${hours}h`
+    if (days < 7) return `${days}d`
+    return date.toLocaleDateString("pt-BR")
+  }
+
+  if (postLoading) {
     return (
       <div className="flex justify-center py-12">
         <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
@@ -82,6 +170,20 @@ export default function PostDetailPage() {
           Voltar
         </Button>
       </Link>
+
+      {/* Video Player */}
+      {(post as Post).video_url && (
+        <div className="aspect-video bg-black rounded-lg overflow-hidden">
+          <video
+            src={(post as Post).video_url}
+            controls
+            className="w-full h-full"
+            poster={(post as Post).cover_image_url}
+          >
+            Seu navegador não suporta vídeos.
+          </video>
+        </div>
+      )}
 
       {/* Post content */}
       <article>
@@ -118,23 +220,227 @@ export default function PostDetailPage() {
         <CardContent className="p-6">
           <div className="flex items-center gap-2 mb-6">
             <MessageCircle className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">Comentários</h2>
+            <h2 className="text-xl font-semibold">
+              Comentários {comments?.length > 0 && `(${comments.length})`}
+            </h2>
           </div>
-          <div className="text-center py-8 text-muted-foreground">
-            <p>Nenhum comentário ainda.</p>
-            <p className="text-sm mt-1">Seja o primeiro a comentar!</p>
-          </div>
-          <div className="mt-4">
-            <textarea
-              className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary min-h-[100px] resize-none"
-              placeholder="Escreva um comentário..."
-            />
-            <div className="flex justify-end mt-2">
-              <Button>Comentar</Button>
+
+          {/* New comment form */}
+          {user ? (
+            <form onSubmit={handleSubmitComment} className="mb-6">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary min-h-[100px] resize-none"
+                placeholder="Escreva um comentário..."
+              />
+              <div className="flex justify-end mt-2">
+                <Button
+                  type="submit"
+                  disabled={!newComment.trim() || createCommentMutation.isPending}
+                >
+                  {createCommentMutation.isPending ? "Enviando..." : "Comentar"}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="mb-6 p-4 bg-muted/50 rounded-lg text-center">
+              <p className="text-muted-foreground">
+                <Link href="/login" className="text-primary hover:underline">
+                  Faça login
+                </Link>{" "}
+                para comentar
+              </p>
             </div>
-          </div>
+          )}
+
+          {/* Comments list */}
+          {commentsLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : !comments || comments.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Nenhum comentário ainda.</p>
+              <p className="text-sm mt-1">Seja o primeiro a comentar!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {comments.map((comment: Comment) => (
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  api={api}
+                  user={user}
+                  replyingTo={replyingTo}
+                  setReplyingTo={setReplyingTo}
+                  replyContent={replyContent}
+                  setReplyContent={setReplyContent}
+                  handleSubmitReply={handleSubmitReply}
+                  isSubmitting={createCommentMutation.isPending}
+                  expandedReplies={expandedReplies}
+                  toggleReplies={toggleReplies}
+                  formatRelativeDate={formatRelativeDate}
+                />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+interface CommentItemProps {
+  comment: Comment
+  api: ReturnType<typeof createTenantApi> | null
+  user: { id: string; name: string; email: string } | null
+  replyingTo: string | null
+  setReplyingTo: (id: string | null) => void
+  replyContent: string
+  setReplyContent: (content: string) => void
+  handleSubmitReply: (parentId: string) => void
+  isSubmitting: boolean
+  expandedReplies: Set<string>
+  toggleReplies: (id: string) => void
+  formatRelativeDate: (date: string) => string
+}
+
+function CommentItem({
+  comment,
+  api,
+  user,
+  replyingTo,
+  setReplyingTo,
+  replyContent,
+  setReplyContent,
+  handleSubmitReply,
+  isSubmitting,
+  expandedReplies,
+  toggleReplies,
+  formatRelativeDate,
+}: CommentItemProps) {
+  const isExpanded = expandedReplies.has(comment.id)
+
+  // Fetch replies when expanded
+  const { data: replies } = useQuery({
+    queryKey: ["replies", comment.id],
+    queryFn: async () => {
+      if (!api) return []
+      return api.comments.getReplies(comment.id)
+    },
+    enabled: isExpanded && comment.reply_count > 0,
+  })
+
+  return (
+    <div className="border-l-2 border-border pl-4">
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0">
+          <span className="text-xs font-semibold text-primary-foreground">
+            {(comment.author_name || "U").charAt(0).toUpperCase()}
+          </span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-sm">
+              {comment.author_name || "Usuário"}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {formatRelativeDate(comment.created_at)}
+            </span>
+          </div>
+          <p className="text-sm mt-1 whitespace-pre-wrap">{comment.content}</p>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 mt-2">
+            {user && (
+              <button
+                onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <Reply className="h-3 w-3" />
+                Responder
+              </button>
+            )}
+            {comment.reply_count > 0 && (
+              <button
+                onClick={() => toggleReplies(comment.id)}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronUp className="h-3 w-3" />
+                    Ocultar respostas
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3 w-3" />
+                    Ver {comment.reply_count} {comment.reply_count === 1 ? "resposta" : "respostas"}
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Reply form */}
+          {replyingTo === comment.id && (
+            <div className="mt-3">
+              <textarea
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary min-h-[80px] resize-none text-sm"
+                placeholder="Escreva sua resposta..."
+                autoFocus
+              />
+              <div className="flex justify-end gap-2 mt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setReplyingTo(null)
+                    setReplyContent("")
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleSubmitReply(comment.id)}
+                  disabled={!replyContent.trim() || isSubmitting}
+                >
+                  {isSubmitting ? "Enviando..." : "Responder"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Replies */}
+          {isExpanded && replies && replies.length > 0 && (
+            <div className="mt-4 space-y-3">
+              {replies.map((reply: Comment) => (
+                <div key={reply.id} className="flex items-start gap-3 pl-4 border-l border-border/50">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/70 to-accent/70 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-semibold text-primary-foreground">
+                      {(reply.author_name || "U").charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">
+                        {reply.author_name || "Usuário"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatRelativeDate(reply.created_at)}
+                      </span>
+                    </div>
+                    <p className="text-sm mt-1">{reply.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
