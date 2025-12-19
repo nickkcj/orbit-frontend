@@ -173,6 +173,10 @@ export function createTenantApi(tenantSlug: string) {
         const response = await tenantApi.get(`/posts/${postId}/comments`)
         return response.data
       },
+      getReplies: async (commentId: string) => {
+        const response = await tenantApi.get(`/comments/${commentId}/replies`)
+        return response.data
+      },
       create: async (data: {
         post_id: string
         content: string
