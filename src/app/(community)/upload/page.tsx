@@ -1,7 +1,7 @@
 "use client"
 
 import { VideoUpload } from "@/components/video-upload"
-import { useTenant } from "@/hooks/use-tenant"
+import { useTenant } from "@/providers/tenant-provider"
 
 export default function UploadTestPage() {
   const { tenant, isLoading } = useTenant()
