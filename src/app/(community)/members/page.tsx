@@ -6,6 +6,7 @@ import { createTenantApi } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Users, Crown, Shield, User } from "lucide-react"
+import Link from "next/link"
 
 interface Member {
   user_id: string
@@ -119,34 +120,36 @@ export default function MembersPage() {
             const RoleIcon = role.icon
 
             return (
-              <Card key={member.user_id} className="hover:border-primary/30 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0">
-                      <span className="text-lg font-semibold text-primary-foreground">
-                        {(member.display_name || member.user?.name || "?").charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold truncate">
-                          {member.display_name || member.user?.name || "Membro"}
-                        </span>
-                        <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${role.bg} ${role.color}`}>
-                          <RoleIcon className="h-3 w-3" />
-                          {role.label}
+              <Link key={member.user_id} href={`/profile/${member.user_id}`}>
+                <Card className="hover:border-primary/30 transition-colors cursor-pointer h-full">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      {/* Avatar */}
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0">
+                        <span className="text-lg font-semibold text-primary-foreground">
+                          {(member.display_name || member.user?.name || "?").charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Entrou em {formatDate(member.joined_at)}
-                      </p>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold truncate">
+                            {member.display_name || member.user?.name || "Membro"}
+                          </span>
+                          <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${role.bg} ${role.color}`}>
+                            <RoleIcon className="h-3 w-3" />
+                            {role.label}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Entrou em {formatDate(member.joined_at)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             )
           })}
         </div>

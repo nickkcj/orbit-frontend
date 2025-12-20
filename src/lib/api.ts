@@ -201,5 +201,64 @@ export function createTenantApi(tenantSlug: string) {
         return response.data
       },
     },
+
+    // Settings
+    settings: {
+      updateTheme: async (theme: {
+        primaryColor?: string
+        accentColor?: string
+        bannerUrl?: string
+      }) => {
+        const response = await tenantApi.put("/settings", { theme })
+        return response.data
+      },
+      updateLogo: async (logoUrl: string) => {
+        const response = await tenantApi.put("/settings/logo", { logo_url: logoUrl })
+        return response.data
+      },
+    },
+
+    // Profile
+    profile: {
+      get: async (userId: string) => {
+        const response = await tenantApi.get(`/profile/${userId}`)
+        return response.data
+      },
+      getPosts: async (userId: string) => {
+        const response = await tenantApi.get(`/profile/${userId}/posts`)
+        return response.data
+      },
+      getMe: async () => {
+        const response = await tenantApi.get("/profile/me")
+        return response.data
+      },
+      updateMe: async (data: { display_name?: string; bio?: string }) => {
+        const response = await tenantApi.put("/profile/me", data)
+        return response.data
+      },
+    },
+
+    // Notifications
+    notifications: {
+      list: async (limit = 20, offset = 0) => {
+        const response = await tenantApi.get("/notifications", {
+          params: { limit, offset },
+        })
+        return response.data
+      },
+      getUnreadCount: async () => {
+        const response = await tenantApi.get<{ count: number }>("/notifications/unread/count")
+        return response.data
+      },
+      markRead: async (id: string) => {
+        await tenantApi.post(`/notifications/${id}/read`)
+      },
+      markAllRead: async () => {
+        await tenantApi.post("/notifications/read-all")
+      },
+      delete: async (id: string) => {
+        await tenantApi.delete(`/notifications/${id}`)
+      },
+    },
   }
 }

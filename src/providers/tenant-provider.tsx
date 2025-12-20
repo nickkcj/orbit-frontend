@@ -4,13 +4,23 @@ import { createContext, useContext, ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { tenantsApi } from "@/lib/api"
 
+export interface ThemeSettings {
+  primaryColor?: string
+  accentColor?: string
+  bannerUrl?: string
+}
+
+export interface TenantSettings {
+  theme?: ThemeSettings
+}
+
 export interface Tenant {
   id: string
   slug: string
   name: string
   description: string | null
   logo_url: string | null
-  settings: Record<string, unknown> | null
+  settings: TenantSettings | null
   status: string
 }
 
