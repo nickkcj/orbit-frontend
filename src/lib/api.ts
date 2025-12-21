@@ -260,5 +260,63 @@ export function createTenantApi(tenantSlug: string) {
         await tenantApi.delete(`/notifications/${id}`)
       },
     },
+
+    // Analytics
+    analytics: {
+      getDashboard: async () => {
+        const response = await tenantApi.get("/analytics/dashboard")
+        return response.data
+      },
+      getStats: async () => {
+        const response = await tenantApi.get("/analytics/stats")
+        return response.data
+      },
+      getMembersGrowth: async (days = 30) => {
+        const response = await tenantApi.get("/analytics/members/growth", {
+          params: { days },
+        })
+        return response.data
+      },
+      getTopPosts: async (limit = 10) => {
+        const response = await tenantApi.get("/analytics/posts/top", {
+          params: { limit },
+        })
+        return response.data
+      },
+    },
+
+    // Likes
+    likes: {
+      likePost: async (postId: string) => {
+        const response = await tenantApi.post<{ liked: boolean; like_count: number }>(
+          `/posts/${postId}/like`
+        )
+        return response.data
+      },
+      unlikePost: async (postId: string) => {
+        const response = await tenantApi.delete<{ liked: boolean; like_count: number }>(
+          `/posts/${postId}/like`
+        )
+        return response.data
+      },
+      getPostLikeStatus: async (postId: string) => {
+        const response = await tenantApi.get<{ liked: boolean; like_count: number }>(
+          `/posts/${postId}/like`
+        )
+        return response.data
+      },
+      likeComment: async (commentId: string) => {
+        const response = await tenantApi.post<{ liked: boolean; like_count: number }>(
+          `/comments/${commentId}/like`
+        )
+        return response.data
+      },
+      unlikeComment: async (commentId: string) => {
+        const response = await tenantApi.delete<{ liked: boolean; like_count: number }>(
+          `/comments/${commentId}/like`
+        )
+        return response.data
+      },
+    },
   }
 }

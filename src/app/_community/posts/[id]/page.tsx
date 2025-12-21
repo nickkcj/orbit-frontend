@@ -8,7 +8,7 @@ import { createTenantApi } from "@/lib/api"
 import { useAuth } from "@/hooks/use-auth"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Clock, User, MessageCircle, Reply, ChevronDown, ChevronUp } from "lucide-react"
+import { ArrowLeft, Clock, User, MessageCircle, Reply, ChevronDown, ChevronUp, Heart } from "lucide-react"
 import Link from "next/link"
 
 interface Post {
@@ -34,6 +34,7 @@ interface Comment {
   content: string
   parent_id?: string
   reply_count: number
+  like_count: number
   created_at: string
 }
 
@@ -69,6 +70,31 @@ export default function PostDetailPage() {
       return api.comments.listByPost(postId)
     },
     enabled: !!tenant && !!postId,
+  })
+
+  // Fetch like status
+  const { data: likeStatus } = useQuery({
+    queryKey: ["postLike", tenant?.slug, postId],
+    queryFn: async () => {
+      if (!api || !user) return { liked: false, like_count: 0 }
+      return api.likes.getPostLikeStatus(postId)
+    },
+    enabled: !!tenant && !!postId && !!user,
+  })
+
+  // Like/unlike mutation
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      if (!api) throw new Error("API not initialized")
+      if (likeStatus?.liked) {
+        return api.likes.unlikePost(postId)
+      } else {
+        return api.likes.likePost(postId)
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["postLike", tenant?.slug, postId], data)
+    },
   })
 
   // Create comment mutation
@@ -213,6 +239,30 @@ export default function PostDetailPage() {
             {post.content}
           </p>
         </div>
+
+        {/* Like button */}
+        <div className="flex items-center gap-4 mt-8 pt-6 border-t border-border">
+          <Button
+            variant={likeStatus?.liked ? "default" : "outline"}
+            size="sm"
+            onClick={() => likeMutation.mutate()}
+            disabled={!user || likeMutation.isPending}
+            className="gap-2"
+          >
+            <Heart
+              className={`h-4 w-4 ${likeStatus?.liked ? "fill-current" : ""}`}
+            />
+            {likeStatus?.like_count || (post as any).like_count || 0}
+          </Button>
+          {!user && (
+            <span className="text-sm text-muted-foreground">
+              <Link href="/login" className="text-primary hover:underline">
+                Faça login
+              </Link>{" "}
+              para curtir
+            </span>
+          )}
+        </div>
       </article>
 
       {/* Comments section */}
@@ -272,6 +322,7 @@ export default function PostDetailPage() {
                   comment={comment}
                   api={api}
                   user={user}
+                  tenantSlug={tenant?.slug || ""}
                   replyingTo={replyingTo}
                   setReplyingTo={setReplyingTo}
                   replyContent={replyContent}
@@ -295,6 +346,7 @@ interface CommentItemProps {
   comment: Comment
   api: ReturnType<typeof createTenantApi> | null
   user: { id: string; name: string; email: string } | null
+  tenantSlug: string
   replyingTo: string | null
   setReplyingTo: (id: string | null) => void
   replyContent: string
@@ -310,6 +362,7 @@ function CommentItem({
   comment,
   api,
   user,
+  tenantSlug,
   replyingTo,
   setReplyingTo,
   replyContent,
@@ -321,6 +374,7 @@ function CommentItem({
   formatRelativeDate,
 }: CommentItemProps) {
   const isExpanded = expandedReplies.has(comment.id)
+  const queryClient = useQueryClient()
 
   // Fetch replies when expanded
   const { data: replies } = useQuery({
@@ -330,6 +384,26 @@ function CommentItem({
       return api.comments.getReplies(comment.id)
     },
     enabled: isExpanded && comment.reply_count > 0,
+  })
+
+  // Comment like status
+  const [liked, setLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(comment.like_count || 0)
+
+  // Like/unlike comment mutation
+  const likeCommentMutation = useMutation({
+    mutationFn: async () => {
+      if (!api) throw new Error("API not initialized")
+      if (liked) {
+        return api.likes.unlikeComment(comment.id)
+      } else {
+        return api.likes.likeComment(comment.id)
+      }
+    },
+    onSuccess: (data) => {
+      setLiked(data.liked)
+      setLikeCount(data.like_count)
+    },
   })
 
   return (
@@ -353,6 +427,16 @@ function CommentItem({
 
           {/* Actions */}
           <div className="flex items-center gap-3 mt-2">
+            <button
+              onClick={() => user && likeCommentMutation.mutate()}
+              disabled={!user || likeCommentMutation.isPending}
+              className={`text-xs flex items-center gap-1 ${
+                liked ? "text-red-500" : "text-muted-foreground hover:text-foreground"
+              } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <Heart className={`h-3 w-3 ${liked ? "fill-current" : ""}`} />
+              {likeCount > 0 && likeCount}
+            </button>
             {user && (
               <button
                 onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}

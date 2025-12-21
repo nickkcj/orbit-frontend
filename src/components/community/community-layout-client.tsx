@@ -8,7 +8,7 @@ import { TenantProvider, Tenant, useTenant } from "@/providers/tenant-provider"
 import { ThemeProvider } from "@/providers/theme-provider"
 import { useAuth } from "@/hooks/use-auth"
 import { NotificationBell } from "./notification-bell"
-import { Settings } from "lucide-react"
+import { Settings, BarChart3 } from "lucide-react"
 
 interface CommunityLayoutClientProps {
   children: ReactNode
@@ -73,7 +73,10 @@ function CommunityHeader() {
             {user && (
               <>
                 <NotificationBell />
-                <Link href="/settings" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors" title="Dashboard">
+                  <BarChart3 className="h-5 w-5" />
+                </Link>
+                <Link href="/settings" className="text-muted-foreground hover:text-foreground transition-colors" title="Configurações">
                   <Settings className="h-5 w-5" />
                 </Link>
               </>

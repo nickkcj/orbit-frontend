@@ -37,7 +37,11 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-tenant-id', tenant.id)
     requestHeaders.set('x-tenant-name', tenant.name)
 
-    return NextResponse.next({
+    // Rewrite to _community routes for subdomain requests
+    const url = request.nextUrl.clone()
+    url.pathname = `/_community${url.pathname}`
+
+    return NextResponse.rewrite(url, {
       request: {
         headers: requestHeaders,
       },
@@ -82,9 +86,10 @@ export const config = {
      * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
+     * - _community (internal community routes - prevent infinite rewrite)
      * - favicon.ico (favicon file)
      * - images (public images)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|images).*)',
+    '/((?!api|_next/static|_next/image|_community|favicon.ico|images).*)',
   ],
 }

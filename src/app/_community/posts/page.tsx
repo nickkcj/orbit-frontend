@@ -6,7 +6,7 @@ import { useTenant } from "@/providers/tenant-provider"
 import { createTenantApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Plus, MessageCircle, Clock, User } from "lucide-react"
+import { Plus, MessageCircle, Clock, User, Heart } from "lucide-react"
 import Link from "next/link"
 
 interface Post {
@@ -18,6 +18,8 @@ interface Post {
   author_name?: string
   category_id?: string
   category_name?: string
+  like_count: number
+  comment_count: number
   created_at: string
   updated_at: string
 }
@@ -108,6 +110,14 @@ export default function PostsPage() {
                         <span className="flex items-center gap-1">
                           <Clock className="h-4 w-4" />
                           {formatDate(post.created_at)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Heart className="h-4 w-4" />
+                          {post.like_count || 0}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MessageCircle className="h-4 w-4" />
+                          {post.comment_count || 0}
                         </span>
                         {post.category_name && (
                           <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs">
