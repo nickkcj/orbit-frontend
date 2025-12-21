@@ -39,22 +39,23 @@ function CommunityHeader() {
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {logoUrl ? (
               <img
                 src={logoUrl}
                 alt={tenant.name}
-                className="w-9 h-9 rounded-lg object-cover"
+                className="w-12 h-12 rounded-xl object-cover shadow-sm"
               />
             ) : (
               <Image
                 src="/images/orbit_logo.png"
                 alt={tenant.name}
-                width={36}
-                height={36}
+                width={48}
+                height={48}
+                className="rounded-xl"
               />
             )}
-            <span className="font-semibold text-lg">{tenant.name}</span>
+            <span className="font-bold text-xl">{tenant.name}</span>
           </div>
 
           <nav className="flex items-center gap-4">
