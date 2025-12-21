@@ -21,6 +21,10 @@ interface Post {
   category_id?: string
   category_name?: string
   video_url?: string
+  cover_image_url?: string
+  like_count: number
+  comment_count: number
+  view_count: number
   created_at: string
   updated_at: string
 }
