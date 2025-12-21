@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useTenant } from "@/providers/tenant-provider"
 import { useAuth } from "@/hooks/use-auth"
@@ -225,7 +225,7 @@ function NotificationContent({
   formatDate,
 }: {
   notification: Notification
-  getIcon: (type: string) => JSX.Element
+  getIcon: (type: string) => React.ReactNode
   formatDate: (date: string) => string
 }) {
   return (
