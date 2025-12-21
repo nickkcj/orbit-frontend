@@ -1,6 +1,39 @@
 import axios from "axios"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || "orbit.app.br"
+
+// Cookie helpers for cross-subdomain auth
+export function setAuthCookie(token: string) {
+  if (typeof window === "undefined") return
+  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString() // 7 days
+  document.cookie = `auth_token=${token}; path=/; domain=.${BASE_DOMAIN}; expires=${expires}; SameSite=Lax`
+}
+
+export function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null
+
+  // Try cookie first (works across subdomains)
+  const cookies = document.cookie.split(";")
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split("=")
+    if (name === "auth_token" && value) {
+      return value
+    }
+  }
+
+  // Fallback to localStorage (for backward compatibility)
+  return localStorage.getItem("token")
+}
+
+export function clearAuthToken() {
+  if (typeof window === "undefined") return
+  // Clear cookie
+  document.cookie = `auth_token=; path=/; domain=.${BASE_DOMAIN}; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+  // Clear localStorage
+  localStorage.removeItem("token")
+  localStorage.removeItem("user")
+}
 
 export const api = axios.create({
   baseURL: `${API_URL}/api/v1`,
@@ -11,11 +44,9 @@ export const api = axios.create({
 
 // Interceptor para adicionar token em todas as requests
 api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token")
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+  const token = getAuthToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
@@ -26,8 +57,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       if (typeof window !== "undefined") {
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
+        clearAuthToken()
         window.location.href = "/login"
       }
     }
@@ -87,11 +117,9 @@ export function createTenantApi(tenantSlug: string) {
 
   // Add token interceptor
   tenantApi.interceptors.request.use((config) => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token")
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
-      }
+    const token = getAuthToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   })

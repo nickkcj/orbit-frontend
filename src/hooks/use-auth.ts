@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { authApi } from "@/lib/api"
+import { authApi, setAuthCookie, getAuthToken, clearAuthToken } from "@/lib/api"
 import { useRouter } from "next/navigation"
 
 interface User {
@@ -24,12 +24,14 @@ export function useAuth() {
     queryKey: ["auth", "me"],
     queryFn: authApi.me,
     retry: false,
-    enabled: typeof window !== "undefined" && !!localStorage.getItem("token"),
+    enabled: typeof window !== "undefined" && !!getAuthToken(),
   })
 
   const loginMutation = useMutation({
     mutationFn: authApi.login,
     onSuccess: (data: AuthResponse) => {
+      // Save to both cookie (for cross-subdomain) and localStorage (for backward compat)
+      setAuthCookie(data.token)
       localStorage.setItem("token", data.token)
       localStorage.setItem("user", JSON.stringify(data.user))
       queryClient.setQueryData(["auth", "me"], data.user)
@@ -40,6 +42,8 @@ export function useAuth() {
   const registerMutation = useMutation({
     mutationFn: authApi.register,
     onSuccess: (data: AuthResponse) => {
+      // Save to both cookie (for cross-subdomain) and localStorage (for backward compat)
+      setAuthCookie(data.token)
       localStorage.setItem("token", data.token)
       localStorage.setItem("user", JSON.stringify(data.user))
       queryClient.setQueryData(["auth", "me"], data.user)
@@ -48,8 +52,7 @@ export function useAuth() {
   })
 
   const logout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
+    clearAuthToken()
     queryClient.clear()
     router.push("/login")
   }
