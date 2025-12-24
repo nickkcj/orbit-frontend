@@ -228,6 +228,14 @@ export function createTenantApi(tenantSlug: string) {
         }>("/uploads/presign", data)
         return response.data
       },
+      presignImage: async (data: { filename: string; content_type?: string }) => {
+        const response = await tenantApi.post<{
+          upload_url: string
+          file_key: string
+          expires_in: number
+        }>("/uploads/presign-image", data)
+        return response.data
+      },
     },
 
     // Settings
@@ -260,7 +268,7 @@ export function createTenantApi(tenantSlug: string) {
         const response = await tenantApi.get("/profile/me")
         return response.data
       },
-      updateMe: async (data: { display_name?: string; bio?: string }) => {
+      updateMe: async (data: { display_name?: string; bio?: string; avatar_url?: string }) => {
         const response = await tenantApi.put("/profile/me", data)
         return response.data
       },
