@@ -283,6 +283,7 @@ export function createTenantApi(tenantSlug: string) {
       presign: async (data: { filename: string; content_type?: string }) => {
         const response = await tenantApi.post<{
           upload_url: string
+          public_url: string
           file_key: string
           expires_in: number
         }>("/uploads/presign", data)
@@ -291,6 +292,7 @@ export function createTenantApi(tenantSlug: string) {
       presignImage: async (data: { filename: string; content_type?: string }) => {
         const response = await tenantApi.post<{
           upload_url: string
+          public_url: string
           file_key: string
           expires_in: number
         }>("/uploads/presign-image", data)

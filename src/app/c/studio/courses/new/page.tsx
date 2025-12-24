@@ -42,7 +42,7 @@ export default function NewCoursePage() {
     setIsUploading(true)
     try {
       const api = createTenantApi(tenant.slug)
-      const { upload_url } = await api.uploads.presignImage({
+      const { upload_url, public_url } = await api.uploads.presignImage({
         filename: file.name,
         content_type: file.type,
       })
@@ -56,9 +56,8 @@ export default function NewCoursePage() {
         },
       })
 
-      // Extract the final URL (without query params)
-      const finalUrl = upload_url.split("?")[0]
-      setThumbnailUrl(finalUrl)
+      // Use the public URL for permanent access
+      setThumbnailUrl(public_url)
     } catch (error) {
       console.error("Failed to upload thumbnail:", error)
     } finally {
