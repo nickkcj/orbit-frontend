@@ -123,9 +123,9 @@ export function useWebSocket(handlers: WebSocketEventHandlers = {}) {
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectAttemptRef = useRef(0)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
-  const pingIntervalRef = useRef<NodeJS.Timeout>()
-  const pongTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined)
+  const pingIntervalRef = useRef<NodeJS.Timeout>(undefined)
+  const pongTimeoutRef = useRef<NodeJS.Timeout>(undefined)
   const handlersRef = useRef(handlers)
 
   // Keep handlers ref updated
