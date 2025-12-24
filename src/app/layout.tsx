@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { Toaster } from "sonner"
 import "./globals.css"
 import { QueryProvider } from "@/providers/query-provider"
 import { TenantProvider } from "@/providers/tenant-provider"
@@ -51,6 +52,15 @@ export default async function RootLayout({
             }
           >
             {children}
+            <Toaster
+              position="bottom-right"
+              theme="dark"
+              richColors
+              closeButton
+              toastOptions={{
+                duration: 4000,
+              }}
+            />
           </TenantProvider>
         </QueryProvider>
       </body>

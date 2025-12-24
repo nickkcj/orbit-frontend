@@ -346,5 +346,128 @@ export function createTenantApi(tenantSlug: string) {
         return response.data
       },
     },
+
+    // Videos (Cloudflare Stream)
+    videos: {
+      list: async (limit = 20, offset = 0) => {
+        const response = await tenantApi.get<Video[]>("/videos", {
+          params: { limit, offset },
+        })
+        return response.data
+      },
+      get: async (id: string) => {
+        const response = await tenantApi.get<Video>(`/videos/${id}`)
+        return response.data
+      },
+      initiateUpload: async (data: { title: string; description?: string }) => {
+        const response = await tenantApi.post<VideoUploadResponse>("/videos", data)
+        return response.data
+      },
+      confirmUpload: async (id: string, streamUid: string) => {
+        const response = await tenantApi.post(`/videos/${id}/confirm`, {
+          stream_uid: streamUid,
+        })
+        return response.data
+      },
+      getPlaybackToken: async (id: string) => {
+        const response = await tenantApi.get<{ token: string }>(`/videos/${id}/token`)
+        return response.data
+      },
+      delete: async (id: string) => {
+        await tenantApi.delete(`/videos/${id}`)
+      },
+    },
+
+    // Roles & Permissions
+    roles: {
+      list: async () => {
+        const response = await tenantApi.get<Role[]>("/roles")
+        return response.data
+      },
+      get: async (id: string) => {
+        const response = await tenantApi.get<Role>(`/roles/${id}`)
+        return response.data
+      },
+      create: async (data: CreateRoleRequest) => {
+        const response = await tenantApi.post<Role>("/roles", data)
+        return response.data
+      },
+      update: async (id: string, data: UpdateRoleRequest) => {
+        const response = await tenantApi.put<Role>(`/roles/${id}`, data)
+        return response.data
+      },
+      delete: async (id: string) => {
+        await tenantApi.delete(`/roles/${id}`)
+      },
+      setPermissions: async (id: string, permissions: string[]) => {
+        const response = await tenantApi.put<Role>(`/roles/${id}/permissions`, {
+          permissions,
+        })
+        return response.data
+      },
+    },
+
+    permissions: {
+      list: async () => {
+        const response = await tenantApi.get<Permission[]>("/permissions")
+        return response.data
+      },
+    },
   }
+}
+
+// Types
+export interface Video {
+  id: string
+  tenant_id: string
+  uploader_id: string
+  uploader_name?: string
+  title: string
+  description?: string
+  thumbnail_url?: string
+  duration_seconds?: number
+  status: "pending" | "uploading" | "processing" | "ready" | "failed"
+  created_at: string
+}
+
+export interface VideoUploadResponse {
+  video_id: string
+  upload_url: string
+  stream_uid: string
+}
+
+// Roles & Permissions Types
+export interface Permission {
+  id: string
+  code: string
+  name: string
+  description?: string
+  category: string
+}
+
+export interface Role {
+  id: string
+  tenant_id: string
+  slug: string
+  name: string
+  description?: string
+  priority: number
+  is_default: boolean
+  is_system: boolean
+  permissions?: Permission[]
+}
+
+export interface CreateRoleRequest {
+  slug: string
+  name: string
+  description?: string
+  priority?: number
+  is_default?: boolean
+  permissions?: string[]
+}
+
+export interface UpdateRoleRequest {
+  name?: string
+  description?: string
+  priority?: number
 }

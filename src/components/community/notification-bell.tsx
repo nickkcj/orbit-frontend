@@ -32,7 +32,7 @@ export function NotificationBell() {
 
   const api = tenant ? createTenantApi(tenant.slug) : null
 
-  // Get unread count
+  // Get unread count - WebSocket handles real-time updates via cache invalidation
   const { data: countData } = useQuery({
     queryKey: ["notifications", "count", tenant?.slug],
     queryFn: async () => {
@@ -40,7 +40,7 @@ export function NotificationBell() {
       return api.notifications.getUnreadCount()
     },
     enabled: !!tenant && !!user,
-    refetchInterval: 30000, // Poll every 30 seconds
+    staleTime: Infinity, // Trust WebSocket invalidation instead of polling
   })
 
   // Get notifications when dropdown is open
