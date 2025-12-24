@@ -9,6 +9,7 @@ import {
   Settings,
   GraduationCap,
   BookOpen,
+  Shield,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -41,6 +42,7 @@ const navItems = [
 const adminItems = [
   { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
   { title: "Studio", url: "/studio/courses", icon: BookOpen },
+  { title: "Cargos", url: "/roles", icon: Shield },
   { title: "Configuracoes", url: "/settings", icon: Settings },
 ]
 

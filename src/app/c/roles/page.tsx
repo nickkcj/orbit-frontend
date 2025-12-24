@@ -57,6 +57,8 @@ const categoryNames: Record<string, string> = {
   categories: "Categorias",
   settings: "Configuracoes",
   videos: "Videos",
+  courses: "Cursos",
+  enrollments: "Matriculas",
   other: "Outros",
 }
 
@@ -69,6 +71,8 @@ const categoryIcons: Record<string, React.ReactNode> = {
   categories: <Settings className="h-4 w-4" />,
   settings: <Settings className="h-4 w-4" />,
   videos: <Settings className="h-4 w-4" />,
+  courses: <Settings className="h-4 w-4" />,
+  enrollments: <Users className="h-4 w-4" />,
   other: <Settings className="h-4 w-4" />,
 }
 
