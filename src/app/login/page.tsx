@@ -3,17 +3,50 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
+import { setAuthCookie, authApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useQueryClient } from "@tanstack/react-query"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [oauthError, setOauthError] = useState<string | null>(null)
   const { user, isLoading, login, isLoggingIn, loginError } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const queryClient = useQueryClient()
+
+  // Handle OAuth callback token
+  useEffect(() => {
+    const token = searchParams.get("token")
+    const error = searchParams.get("error")
+
+    if (error) {
+      setOauthError(error === "invalid_state" ? "Sessao expirada" : "Erro ao autenticar com Google")
+      return
+    }
+
+    if (token) {
+      // Store token and fetch user info
+      setAuthCookie(token)
+      localStorage.setItem("token", token)
+
+      // Fetch user info and redirect
+      authApi.me().then((userData) => {
+        localStorage.setItem("user", JSON.stringify(userData))
+        queryClient.setQueryData(["auth", "me"], userData)
+        router.push("/dashboard")
+      }).catch(() => {
+        setOauthError("Erro ao carregar dados do usuario")
+      })
+    }
+  }, [searchParams, router, queryClient])
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -27,8 +60,8 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = () => {
-    // TODO: Implementar login com Google
-    console.log("Google login")
+    // Redirect to backend Google OAuth endpoint
+    window.location.href = `${API_URL}/api/v1/auth/google`
   }
 
   return (
@@ -122,9 +155,9 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {loginError && (
+            {(loginError || oauthError) && (
               <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">
-                Credenciais inválidas
+                {oauthError || "Credenciais invalidas"}
               </div>
             )}
 

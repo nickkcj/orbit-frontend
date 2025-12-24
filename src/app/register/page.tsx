@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+
 export default function RegisterPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -28,8 +30,8 @@ export default function RegisterPage() {
   }
 
   const handleGoogleLogin = () => {
-    // TODO: Implementar login com Google
-    console.log("Google login")
+    // Redirect to backend Google OAuth endpoint
+    window.location.href = `${API_URL}/api/v1/auth/google`
   }
 
   return (
