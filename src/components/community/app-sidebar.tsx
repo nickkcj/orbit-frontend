@@ -7,6 +7,8 @@ import {
   Upload,
   BarChart3,
   Settings,
+  GraduationCap,
+  BookOpen,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -31,12 +33,14 @@ import { UserDropdown } from "./user-dropdown"
 const navItems = [
   { title: "Inicio", url: "/", icon: Home },
   { title: "Posts", url: "/posts", icon: FileText },
+  { title: "Cursos", url: "/courses", icon: GraduationCap },
   { title: "Membros", url: "/members", icon: Users },
   { title: "Upload", url: "/upload", icon: Upload },
 ]
 
 const adminItems = [
   { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
+  { title: "Studio", url: "/studio/courses", icon: BookOpen },
   { title: "Configuracoes", url: "/settings", icon: Settings },
 ]
 

@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { ContinueLearning } from "@/components/courses/continue-learning"
 
 export default async function CommunityHomePage() {
   const tenant = await getTenantFromHeaders()
@@ -27,8 +28,11 @@ export default async function CommunityHomePage() {
           com outros membros da comunidade.
         </p>
         <div className="flex justify-center gap-4">
+          <Link href="/courses">
+            <Button>Ver Cursos</Button>
+          </Link>
           <Link href="/posts">
-            <Button>Ver Posts</Button>
+            <Button variant="outline">Ver Posts</Button>
           </Link>
           <Link href="/members">
             <Button variant="outline">Ver Membros</Button>
@@ -36,8 +40,28 @@ export default async function CommunityHomePage() {
         </div>
       </div>
 
+      {/* Continue Learning Section */}
+      <ContinueLearning limit={3} showTitle={true} />
+
       {/* Content cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Cursos</CardTitle>
+            <CardDescription>Aprenda no seu ritmo</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground text-sm">
+              Explore os cursos disponiveis e desenvolva novas habilidades.
+            </p>
+            <Link href="/courses">
+              <Button className="mt-4" size="sm" variant="outline">
+                Ver cursos
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="text-lg">Posts Recentes</CardTitle>

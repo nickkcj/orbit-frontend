@@ -1,4 +1,64 @@
 import axios from "axios"
+import type {
+  Course,
+  Module,
+  Lesson,
+  CourseStructure,
+  CreateCourseRequest,
+  UpdateCourseRequest,
+  CreateModuleRequest,
+  UpdateModuleRequest,
+  CreateLessonRequest,
+  UpdateLessonRequest,
+} from "./types/course"
+import type {
+  CourseEnrollment,
+  EnrollmentWithCourse,
+  ContinueLearningCourse,
+  LessonProgress,
+  CoursePlayerData,
+  LessonPlayerResponse,
+  MarkLessonCompleteResponse,
+  EnrollmentStatusResponse,
+  EnrollmentsListResponse,
+  CourseEnrollmentsListResponse,
+  EnrollmentWithProgress,
+} from "./types/enrollment"
+
+// Re-export course types
+export type {
+  Course,
+  Module,
+  Lesson,
+  CourseStructure,
+  CreateCourseRequest,
+  UpdateCourseRequest,
+  CreateModuleRequest,
+  UpdateModuleRequest,
+  CreateLessonRequest,
+  UpdateLessonRequest,
+} from "./types/course"
+
+// Re-export enrollment types
+export type {
+  CourseEnrollment,
+  EnrollmentWithCourse,
+  ContinueLearningCourse,
+  LessonProgress,
+  CoursePlayerData,
+  LessonPlayerResponse,
+  MarkLessonCompleteResponse,
+  EnrollmentStatusResponse,
+  EnrollmentsListResponse,
+  CourseEnrollmentsListResponse,
+  EnrollmentWithProgress,
+} from "./types/enrollment"
+
+// CourseWithDetails includes author info
+export interface CourseWithDetails extends Course {
+  author_name: string
+  author_avatar?: string
+}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || "orbit.app.br"
@@ -418,6 +478,180 @@ export function createTenantApi(tenantSlug: string) {
     permissions: {
       list: async () => {
         const response = await tenantApi.get<Permission[]>("/permissions")
+        return response.data
+      },
+    },
+
+    // Courses
+    courses: {
+      list: async (params?: { status?: string; limit?: number; offset?: number }) => {
+        const response = await tenantApi.get<Course[]>("/courses", { params })
+        return response.data
+      },
+      get: async (id: string) => {
+        const response = await tenantApi.get<CourseWithDetails>(`/courses/${id}`)
+        return response.data
+      },
+      getStructure: async (id: string) => {
+        const response = await tenantApi.get<CourseStructure>(`/courses/${id}/structure`)
+        return response.data
+      },
+      create: async (data: CreateCourseRequest) => {
+        const response = await tenantApi.post<Course>("/courses", data)
+        return response.data
+      },
+      update: async (id: string, data: UpdateCourseRequest) => {
+        const response = await tenantApi.put<Course>(`/courses/${id}`, data)
+        return response.data
+      },
+      publish: async (id: string) => {
+        const response = await tenantApi.post<Course>(`/courses/${id}/publish`)
+        return response.data
+      },
+      unpublish: async (id: string) => {
+        const response = await tenantApi.post<Course>(`/courses/${id}/unpublish`)
+        return response.data
+      },
+      delete: async (id: string) => {
+        await tenantApi.delete(`/courses/${id}`)
+      },
+    },
+
+    // Modules
+    modules: {
+      list: async (courseId: string) => {
+        const response = await tenantApi.get<Module[]>(`/courses/${courseId}/modules`)
+        return response.data
+      },
+      get: async (id: string) => {
+        const response = await tenantApi.get<Module>(`/modules/${id}`)
+        return response.data
+      },
+      create: async (courseId: string, data: CreateModuleRequest) => {
+        const response = await tenantApi.post<Module>(`/courses/${courseId}/modules`, data)
+        return response.data
+      },
+      update: async (id: string, data: UpdateModuleRequest) => {
+        const response = await tenantApi.put<Module>(`/modules/${id}`, data)
+        return response.data
+      },
+      reorder: async (id: string, position: number) => {
+        await tenantApi.put(`/modules/${id}/reorder`, { position })
+      },
+      delete: async (id: string) => {
+        await tenantApi.delete(`/modules/${id}`)
+      },
+    },
+
+    // Lessons
+    lessons: {
+      list: async (moduleId: string) => {
+        const response = await tenantApi.get<Lesson[]>(`/modules/${moduleId}/lessons`)
+        return response.data
+      },
+      get: async (id: string) => {
+        const response = await tenantApi.get<Lesson>(`/lessons/${id}`)
+        return response.data
+      },
+      create: async (moduleId: string, data: CreateLessonRequest) => {
+        const response = await tenantApi.post<Lesson>(`/modules/${moduleId}/lessons`, data)
+        return response.data
+      },
+      update: async (id: string, data: UpdateLessonRequest) => {
+        const response = await tenantApi.put<Lesson>(`/lessons/${id}`, data)
+        return response.data
+      },
+      reorder: async (id: string, position: number) => {
+        await tenantApi.put(`/lessons/${id}/reorder`, { position })
+      },
+      delete: async (id: string) => {
+        await tenantApi.delete(`/lessons/${id}`)
+      },
+    },
+
+    // Enrollments
+    enrollments: {
+      // Enroll in a course
+      enroll: async (courseId: string) => {
+        const response = await tenantApi.post<CourseEnrollment>("/enrollments", {
+          course_id: courseId,
+        })
+        return response.data
+      },
+      // List my enrollments
+      list: async (limit = 20, offset = 0) => {
+        const response = await tenantApi.get<EnrollmentsListResponse>("/enrollments", {
+          params: { limit, offset },
+        })
+        return response.data
+      },
+      // Get continue learning courses
+      getContinueLearning: async (limit = 5) => {
+        const response = await tenantApi.get<ContinueLearningCourse[]>("/enrollments/continue", {
+          params: { limit },
+        })
+        return response.data
+      },
+      // Get enrollment status for a course
+      getStatus: async (courseId: string) => {
+        const response = await tenantApi.get<EnrollmentStatusResponse>(
+          `/courses/${courseId}/enrollment`
+        )
+        return response.data
+      },
+      // Drop enrollment from a course
+      drop: async (courseId: string) => {
+        await tenantApi.delete(`/courses/${courseId}/enrollment`)
+      },
+      // Get detailed progress for a course
+      getProgress: async (courseId: string) => {
+        const response = await tenantApi.get<CoursePlayerData>(`/courses/${courseId}/progress`)
+        return response.data
+      },
+      // Admin: List enrollments for a course
+      listByCourse: async (courseId: string, limit = 20, offset = 0) => {
+        const response = await tenantApi.get<CourseEnrollmentsListResponse>(
+          `/courses/${courseId}/enrollments`,
+          { params: { limit, offset } }
+        )
+        return response.data
+      },
+    },
+
+    // Lesson Player (learn mode)
+    learn: {
+      // Get lesson for player with progress
+      getLesson: async (lessonId: string) => {
+        const response = await tenantApi.get<LessonPlayerResponse>(`/learn/lessons/${lessonId}`)
+        return response.data
+      },
+      // Mark lesson as complete
+      completeLesson: async (lessonId: string) => {
+        const response = await tenantApi.post<MarkLessonCompleteResponse>(
+          `/learn/lessons/${lessonId}/complete`
+        )
+        return response.data
+      },
+      // Unmark lesson as complete
+      uncompleteLesson: async (lessonId: string) => {
+        const response = await tenantApi.delete<MarkLessonCompleteResponse>(
+          `/learn/lessons/${lessonId}/complete`
+        )
+        return response.data
+      },
+      // Update video progress
+      updateVideoProgress: async (
+        lessonId: string,
+        watchDurationSeconds: number,
+        videoTotalSeconds?: number
+      ) => {
+        const response = await tenantApi.put<LessonProgress>(
+          `/learn/lessons/${lessonId}/video-progress`,
+          {
+            watch_duration_seconds: watchDurationSeconds,
+            video_total_seconds: videoTotalSeconds,
+          }
+        )
         return response.data
       },
     },
